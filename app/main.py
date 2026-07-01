@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.logging import setup_logging
 
 
 @asynccontextmanager
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     启动时初始化资源（数据库连接池、Redis 等），
     关闭时优雅释放资源。
     """
+    # 设置日志
+    setup_logging()
     # 启动时: 初始化数据库连接池等
     #     ...
     yield
