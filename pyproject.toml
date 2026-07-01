@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "FastAPI Starter — 项目模板"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = ["fastapi[standard]>=0.138.2"]
+dependencies = ["fastapi[standard]>=0.138.2", "pydantic-settings>=2.14.2"]
 
 [dependency-groups]
 dev = ["mypy>=2.1.0", "pre-commit>=4.6.0", "ruff>=0.15.20"]
@@ -38,6 +38,7 @@ lint.select = [
 lint.ignore = [
   "E501", # 行太长（由 formatter 自动处理，linter 忽略以避免冲突）
   "B008", # 允许在函数签名中使用 Depends() (FastAPI 核心范式)
+  "RUF002", # 忽略 Docstring 中的全角标点检查
   "RUF012", # 忽略类属性可变类型的严格检查（在 SQLAlchemy 模型中很常见）
 ]
 
@@ -54,6 +55,7 @@ python_version = "3.12"
 strict = true # 开启严格模式
 ignore_missing_imports = true # 忽略缺失类型提示的第三方库（针对尚未完善 type hints 的老旧库）
 disable_error_code = ["override"] # 允许在测试中覆盖返回类型
+plugins = ["pydantic.mypy"] # 启用 Pydantic 插件
 
 [tool.fastapi]
 entrypoint = "app.main:app"
