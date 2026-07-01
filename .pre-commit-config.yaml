@@ -1,0 +1,17 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.20
+    hooks:
+      # 1. 运行 Ruff Linter (自动修复可修复的问题)
+      - id: ruff-check
+        args: [--fix]
+      # 2. 运行 Ruff Formatter (格式化代码，替代 Black)
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.1.0
+    hooks:
+      - id: mypy
+        args: [--config-file=pyproject.toml]
+        # 只检查 app 目录，跳过测试和迁移文件
+        files: ^app/

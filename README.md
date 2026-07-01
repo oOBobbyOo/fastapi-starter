@@ -34,6 +34,8 @@ fastapi dev
 deactivate
 ```
 
+### 使用 uv 管理项目
+
 ```bash
 # 1. 安装 uv
 pip install uv
@@ -49,4 +51,49 @@ uv sync
 
 # 5. 直接运行，uv 会自动处理环境
 uv run fastapi dev
+```
+
+### 安装开发依赖
+
+Ruff：集 Linter 和 Formatter 于一身。替代了 Black, isort, flake8 及其数十个插件。
+Mypy 或 Pyright：静态类型检查器。“没有类型提示的代码等于没有写完的代码” 已成为行业共识。
+
+```bash
+# --dev 参数将这些包标记为开发依赖（写入 [dependency-groups].dev）
+uv add --dev ruff mypy
+
+# 检查代码风格并自动修复（包括 import 排序、移除未使用的导入等）
+uv run ruff check --fix .
+
+# 格式化所有 Python 文件（统一引号风格、缩进、行宽等）
+uv run ruff format .
+
+# CI 环境中的只读检查（不修改文件，发现问题则退出码非 0）：
+# uv run ruff check .
+# uv run ruff format --check .
+
+# 运行静态类型检查（项目需配置 pyproject.toml 中的 [tool.mypy]）
+uv run mypy app/
+
+# 首次运行建议加 --strict 发现所有潜在问题
+# uv run mypy --strict app/
+```
+
+### Git 钩子自动检查
+
+Pre-commit：Git 钩子管理框架，确保代码在提交前必须通过格式化和检查。
+
+```bash
+uv add --dev pre-commit
+
+# 安装钩子（只需执行一次）：
+uv run pre-commit install
+
+# 手动运行验证
+
+# 对所有已跟踪的文件运行所有钩子（首次设置时推荐）
+uv run pre-commit run --all-files
+
+# 仅对暂存区的文件运行（模拟 git commit 时的行为）
+uv run pre-commit run
 ```

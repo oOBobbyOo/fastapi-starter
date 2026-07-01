@@ -4,6 +4,56 @@ version = "0.1.0"
 description = "FastAPI Starter — 项目模板"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = [
-    "fastapi[standard]>=0.138.2",
+dependencies = ["fastapi[standard]>=0.138.2"]
+
+[dependency-groups]
+dev = ["mypy>=2.1.0", "pre-commit>=4.6.0", "ruff>=0.15.20"]
+
+[tool.ruff]
+# 针对 Python 3.12+ 的推荐规则
+target-version = "py312"
+# 行宽设定，现代宽屏显示器下 100 或 120 比传统的 88 更受欢迎
+line-length = 100
+# 排除不需要检查的目录
+exclude = [
+  ".git",
+  ".venv",
+  "migrations", # 自动生成的 Alembic 迁移文件通常不需要严格检查
+  "alembic",
 ]
+
+# Lint 规则集
+lint.select = [
+  "E", # pycodestyle errors
+  "W", # pycodestyle warnings
+  "F", # pyflakes (未使用的导入/变量)
+  "I", # isort (自动排序 import)
+  "N", # pep8-naming (命名规范)
+  "UP", # pyupgrade (自动升级语法到 3.12+)
+  "B", # flake8-bugbear (常见 bug 和性能问题)
+  "SIM", # flake8-simplify (代码简化建议)
+  "TCH", # flake8-type-checking (将仅用于类型的 import 放入 TYPE_CHECKING),
+  "RUF", # Ruff 特有的优化规则
+]
+lint.ignore = [
+  "E501", # 行太长（由 formatter 自动处理，linter 忽略以避免冲突）
+  "B008", # 允许在函数签名中使用 Depends() (FastAPI 核心范式)
+  "RUF012", # 忽略类属性可变类型的严格检查（在 SQLAlchemy 模型中很常见）
+]
+
+# 格式化配置 (ruff format)
+[tool.ruff.format]
+quote-style = "double" # 使用双引号（或单引号，团队统一即可）
+indent-style = "space" # 缩进使用空格
+skip-magic-trailing-comma = false # 自动魔法尾随逗号
+line-ending = "lf"
+
+# 静态类型检查配置 (mypy)
+[tool.mypy]
+python_version = "3.12"
+strict = true # 开启严格模式
+ignore_missing_imports = true # 忽略缺失类型提示的第三方库（针对尚未完善 type hints 的老旧库）
+disable_error_code = ["override"] # 允许在测试中覆盖返回类型
+
+[tool.fastapi]
+entrypoint = "app.main:app"
