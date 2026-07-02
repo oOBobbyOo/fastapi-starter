@@ -20,6 +20,7 @@ engine = create_async_engine(
     # 对于 MySQL，建议设置为小于 8 小时的值，例如 3600 (1小时) 或 1800 (半小时)。
     # 对于 PostgreSQL，通常不需要设置，因为 PG 不会主动杀空闲连接。
     # pool_recycle=1800,
+    connect_args={"ssl": "require"},  # 通过 connect_args 告诉 asyncpg 开启 SSL
 )
 
 # 创建异步 Session 工厂
