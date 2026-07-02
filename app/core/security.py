@@ -5,7 +5,7 @@
 """
 
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 
 import jwt
 from pwdlib import PasswordHash
@@ -25,12 +25,12 @@ hasher = PasswordHash((BcryptHasher(),))
 # ---- 密码工具 ----
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证明文密码与哈希是否匹配。"""
-    return cast("bool", hasher.verify(plain_password, hashed_password))
+    return hasher.verify(plain_password, hashed_password)
 
 
 def password_hash(password: str) -> str:
     """对密码进行哈希处理。"""
-    return cast("str", hasher.hash(password))
+    return hasher.hash(password)
 
 
 # ---- JWT 工具 ----
@@ -49,7 +49,7 @@ def create_access_token(
         "exp": now + expires_delta,
         "type": "access",
     }
-    return cast("str", jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM))
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def create_refresh_token(
@@ -67,11 +67,9 @@ def create_refresh_token(
         "exp": now + expires_delta,
         "type": "refresh",
     }
-    return cast("str", jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM))
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def decode_token(token: str) -> dict[str, Any]:
     """解码并验证 JWT Token。"""
-    return cast(
-        "dict[str, Any]", jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-    )
+    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
