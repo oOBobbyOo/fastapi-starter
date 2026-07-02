@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.utils.exception_handlers import register_exception_handlers
 
 
 @asynccontextmanager
@@ -41,6 +42,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ---- 注册异常处理器 ----
+register_exception_handlers(app)
 
 # ---- 中间件注册 ----
 app.add_middleware(
