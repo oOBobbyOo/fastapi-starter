@@ -70,6 +70,12 @@ def create_refresh_token(
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def decode_token(token: str) -> dict[str, Any]:
-    """解码并验证 JWT Token。"""
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+def decode_token(token: str) -> dict[str, Any] | None:
+    """
+    解码并验证 JWT Token。
+    如果 Token 无效或过期，返回 None。
+    """
+    try:
+        return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    except jwt.PyJWTError:
+        return None
