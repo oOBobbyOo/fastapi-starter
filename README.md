@@ -96,4 +96,7 @@ uv run pre-commit run --all-files
 
 # 仅对暂存区的文件运行（模拟 git commit 时的行为）
 uv run pre-commit run
+
+# 清理旧缓存
+uv run pre-commit clean
 ```
