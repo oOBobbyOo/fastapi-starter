@@ -4,12 +4,7 @@ version = "0.1.0"
 description = "FastAPI Starter — 项目模板"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = [
-    "fastapi[standard]>=0.138.2",
-    "pwdlib[argon2,bcrypt]>=0.3.0",
-    "pydantic-settings>=2.14.2",
-    "pyjwt>=2.13.0",
-]
+dependencies = ["fastapi[standard]>=0.138.2", "pwdlib[argon2,bcrypt]>=0.3.0", "pydantic-settings>=2.14.2", "pyjwt>=2.13.0", "sqlalchemy[asyncio]>=2.0.51"]
 
 [dependency-groups]
 dev = ["mypy>=2.1.0", "pre-commit>=4.6.0", "ruff>=0.15.20"]
@@ -44,6 +39,7 @@ lint.ignore = [
   "E501", # 行太长（由 formatter 自动处理，linter 忽略以避免冲突）
   "B008", # 允许在函数签名中使用 Depends() (FastAPI 核心范式)
   "RUF002", # 忽略 Docstring 中的全角标点检查
+  "RUF003", # 忽略 Docstring 中的全角逗号检查
   "RUF012", # 忽略类属性可变类型的严格检查（在 SQLAlchemy 模型中很常见）
 ]
 
