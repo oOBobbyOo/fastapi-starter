@@ -56,6 +56,7 @@ uv run fastapi dev
 ### 安装开发依赖
 
 Ruff：集 Linter 和 Formatter 于一身。替代了 Black, isort, flake8 及其数十个插件。
+
 Mypy 或 Pyright：静态类型检查器。“没有类型提示的代码等于没有写完的代码” 已成为行业共识。
 
 ```bash
@@ -100,3 +101,9 @@ uv run pre-commit run
 # 清理旧缓存
 uv run pre-commit clean
 ```
+
+### 访问
+
+- API 文档: <http://localhost:8000/docs>
+- ReDoc: <http://localhost:8000/redoc>
+- API v1: <http://localhost:8000/api/v1/>
