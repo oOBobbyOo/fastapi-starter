@@ -1,4 +1,8 @@
-from collections.abc import AsyncGenerator
+"""
+数据库会话管理。
+
+使用 SQLAlchemy 异步引擎和会话工厂。
+"""
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -24,31 +28,3 @@ async_session = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
-
-
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    获取数据库会话的依赖注入。
-
-    用法:
-        @router.get("/items")
-        async def get_items(db: AsyncSession = Depends(get_db)):
-            ...
-
-    自动管理事务: 成功提交，异常回滚。
-    """
-
-    # 使用 async_session 生成一个 session 实例
-    async with async_session() as session:
-        try:
-            # 将 session 注入到路由函数中
-            yield session
-            # 路由函数正常执行完毕，自动提交事务
-            await session.commit()
-        except Exception:
-            # 发生异常，自动回滚事务
-            await session.rollback()
-            raise
-        finally:
-            # 确保 session 被正确关闭，归还连接到连接池
-            await session.close()

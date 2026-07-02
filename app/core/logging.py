@@ -44,3 +44,12 @@ def setup_logging() -> None:
     logging.getLogger("sqlalchemy.engine").setLevel(
         logging.INFO if settings.DATABASE_ECHO else logging.WARNING
     )
+
+
+def get_logger(name: str) -> logging.Logger:
+    """获取指定模块的 logger 实例。
+
+    替代分散在各模块中的 logging.getLogger(__name__)，
+    统一 logger 获取方式，方便后续扩展（如注入上下文）。
+    """
+    return logging.getLogger(name)

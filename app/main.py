@@ -4,7 +4,6 @@ FastAPI 应用入口。
 创建 FastAPI 实例、注册中间件、挂载路由和静态文件。
 """
 
-import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -14,10 +13,11 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.logging import setup_logging
+from app.core.logging import get_logger, setup_logging
+from app.db.database import close_db, init_db
 from app.utils.exception_handlers import register_exception_handlers
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -35,15 +35,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # ================= 启动阶段 (Startup) =================
     logger.info("🚀 应用程序正在启动...")
 
-    # 启动时: 初始化数据库连接池等
+    # 初始化数据库
+    await init_db()
 
     yield  # <--- 应用运行中，处理 HTTP 请求
 
     # ================= 关闭阶段 (Shutdown) =================
     logger.info("🛑 应用程序正在关闭...")
 
-    # 关闭时: 释放资源
-    # await engine.dispose()
+    # 释放数据库资源
+    await close_db()
 
     logger.info("👋 应用程序关闭完成.")
 

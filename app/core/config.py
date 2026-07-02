@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     DATABASE_POOL_SIZE: int = 20
     DATABASE_MAX_OVERFLOW: int = 10
     DATABASE_ECHO: bool = False
+    DATABASE_MAX_RETRIES: int = 5
+    DATABASE_RETRY_INTERVAL: int = 3
 
     # ---- Redis ----
     REDIS_URL: str = "redis://localhost:6379/0"
