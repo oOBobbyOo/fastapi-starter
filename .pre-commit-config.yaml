@@ -15,4 +15,4 @@ repos:
         args: [--config-file=pyproject.toml]
         # 只检查 app 目录，跳过测试和迁移文件
         files: ^app/
-        additional_dependencies: ['pydantic>=2.13.4', 'pydantic-settings>=2.14.2', 'fastapi>=0.138.2', 'pwdlib[argon2,bcrypt]>=0.3.0', 'pyjwt>=2.13.0']
+        additional_dependencies: ['pydantic>=2.13.4', 'pydantic-settings>=2.14.2', 'fastapi>=0.138.2', 'pwdlib[argon2,bcrypt]>=0.3.0', 'pyjwt>=2.13.0', 'sqlalchemy[asyncio]>=2.0.51']
