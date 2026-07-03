@@ -196,7 +196,8 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         db: AsyncSession,
         *,
         objs_in: list[CreateSchemaType],
-    ) -> list[ModelType]:
+        return_objects: bool = True,
+    ) -> list[ModelType] | None:
         """
         批量创建记录。
 
@@ -206,24 +207,32 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         Args:
             db: 异步数据库会话
             objs_in: 创建数据的 Pydantic Schema 列表
+            return_objects: 是否返回完整对象列表
 
         Returns:
             创建后的 ORM 模型对象列表（已包含数据库生成的字段）
         """
-        if not objs_in:
-            return []
 
-        stmt = insert(self.model).returning(self.model)
+        if not objs_in:
+            return [] if return_objects else None
+
+        stmt = insert(self.model)
+        if return_objects:
+            stmt = stmt.returning(self.model)
+
         data = [obj.model_dump() for obj in objs_in]
         result = await db.execute(stmt, data)
-        return list(result.scalars().all())
+
+        if return_objects:
+            return list(result.scalars().all())
+        return None
 
     async def update(
         self,
         db: AsyncSession,
         *,
-        db_obj: ModelType,
         obj_in: UpdateSchemaType | dict[str, Any],
+        db_obj: ModelType,
     ) -> ModelType:
         """
         更新已有记录。
