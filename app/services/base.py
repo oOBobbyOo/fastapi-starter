@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -46,13 +47,26 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
 
         Args:
             model: SQLAlchemy ORM 模型类，如 User、Item 等
-            default_order_by: 默认排序字段，默认为模型主键升序
+            default_order_by: 默认排序字段，不传则使用模型主键升序
         """
         self.model = model
-        mapper = inspect(model)
-        pk_columns = mapper.primary_key
-        self._pk_column: ColumnElement[Any] = pk_columns[0]
-        self.default_order_by = default_order_by or self._pk_column
+        self.default_order_by = default_order_by
+
+    @cached_property
+    def _pk_column(self) -> ColumnElement[Any]:
+        """动态获取模型的主键列，用于默认排序和查询。（首次访问时通过 inspect 获取并缓存）。"""
+
+        mapper = inspect(self.model)
+        primary_keys = mapper.primary_key
+        if not primary_keys:
+            raise ValueError(f"Model {self.model.__name__} has no primary key defined")
+        return primary_keys[0]
+
+    @property
+    def _order_by(self) -> ColumnElement[Any]:
+        """默认排序字段：用户传入的 > 模型主键。"""
+
+        return self.default_order_by or self._pk_column
 
     def _apply_options(
         self, stmt: Select[Any], options: Sequence[LoaderOption] | None
@@ -124,7 +138,7 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         stmt = select(self.model)
         stmt = self._apply_filters(stmt, filters)
         stmt = self._apply_options(stmt, options)
-        stmt = stmt.order_by(order_by or self.default_order_by).offset(skip).limit(limit)
+        stmt = stmt.order_by(order_by or self._order_by).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())
 
