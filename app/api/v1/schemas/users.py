@@ -4,6 +4,8 @@ Users Schema。
 定义用户资源的请求/响应 Pydantic 模型。
 """
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -35,6 +37,8 @@ class UserResponse(UserBase):
     """
 
     id: int = Field(..., description="用户唯一 ID")
+    created_at: datetime = Field(..., description="创建时间")
+    updated_at: datetime = Field(..., description="更新时间")
 
     # 安全设计：响应模型中坚决不包含 password 字段，防止密码泄露
 
