@@ -247,8 +247,8 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
 
         Args:
             db: 异步数据库会话
-            db_obj: 待更新的 ORM 模型对象（需从数据库查询获得）
             obj_in: 更新数据，可以是 Pydantic Schema 或字典
+            db_obj: 待更新的 ORM 模型对象（需从数据库查询获得）
 
         Returns:
             更新后的 ORM 模型对象
