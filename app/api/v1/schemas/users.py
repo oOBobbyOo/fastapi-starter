@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 class UserBase(BaseModel):
     """用户基础模型。"""
 
-    name: str = Field(..., min_length=2, max_length=50, description="用户名")
+    username: str = Field(..., min_length=2, max_length=50, description="用户名")
     email: EmailStr = Field(..., description="邮箱")
 
 
@@ -25,7 +25,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     """更新用户请求模型。"""
 
-    name: str | None = Field(None, min_length=2, max_length=50, description="新用户名")
+    username: str | None = Field(None, min_length=2, max_length=50, description="新用户名")
     email: EmailStr | None = Field(None, description="新邮箱")
     password: str | None = Field(None, min_length=8, description="新密码")
 
