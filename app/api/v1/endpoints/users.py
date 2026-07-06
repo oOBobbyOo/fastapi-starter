@@ -7,7 +7,7 @@ Users 端点。
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.schemas.users import UserResponse
+from app.api.v1.schemas.users import UserCreate, UserResponse
 from app.db.database import get_db
 from app.services.user import user_service
 from app.utils.exceptions import NotFoundException
@@ -24,4 +24,14 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)) -> UserResp
         raise NotFoundException(
             detail="User not found",
         )
+    return UserResponse.model_validate(user)
+
+
+@router.post("/", response_model=UserResponse, summary="创建用户")
+async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> UserResponse:
+    """创建新用户。"""
+
+    user = await user_service.create(db, obj_in=user_in)
+    await db.commit()
+
     return UserResponse.model_validate(user)
