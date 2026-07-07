@@ -56,3 +56,18 @@ async def update_user(
     user = await user_service.update(db, obj_in=user_in, db_obj=user)
     await db.commit()
     return UserResponse.model_validate(user)
+
+
+@router.delete("/{user_id}", summary="删除用户")
+async def delete_user(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """删除用户"""
+
+    user = await user_service.delete(db, obj_id=user_id)
+    if not user:
+        raise NotFoundException(
+            detail="User not found",
+        )
+    await db.commit()
