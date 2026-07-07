@@ -29,6 +29,18 @@ async def get_user(user_id: UUID, db: AsyncSession = Depends(get_db)) -> UserRes
     return UserResponse.model_validate(user)
 
 
+@router.get("/", response_model=list[UserResponse], summary="获取用户列表")
+async def get_users(
+    skip: int = 0,
+    limit: int = 10,
+    db: AsyncSession = Depends(get_db),
+) -> list[UserResponse]:
+    """分页查询用户列表"""
+
+    users = await user_service.get_multi(db, skip=skip, limit=limit)
+    return [UserResponse.model_validate(user) for user in users]
+
+
 @router.post("/", response_model=UserResponse, summary="创建用户")
 async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> UserResponse:
     """创建新用户"""
