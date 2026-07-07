@@ -7,10 +7,10 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
-from sqlalchemy import ColumnElement, Select, func, insert, inspect, select
+from sqlalchemy import ColumnElement, Select, delete, func, insert, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 if TYPE_CHECKING:
@@ -61,6 +61,12 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         if not primary_keys:
             raise ValueError(f"Model {self.model.__name__} has no primary key defined")
         return primary_keys[0]
+
+    @cached_property
+    def _pk_name(self) -> str:
+        """获取主键字段名，用于 update 时防止主键被篡改。"""
+
+        return cast("str", self._pk_column.name)
 
     @property
     def _order_by(self) -> ColumnElement[Any]:
@@ -130,7 +136,7 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
             limit: 返回的最大记录数，默认 20
             filters: 可选的过滤条件列表，如 [Item.is_active == True]
             options: 可选的关联预加载选项
-            order_by: 自定义排序字段，覆盖默认排序
+            order_by: 自定义排序字段，覆盖默认排序，支持单字段或字段列表（如 [Item.created_at.desc(), Item.id]）
 
         Returns:
             符合条件的模型对象列表
@@ -138,7 +144,16 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         stmt = select(self.model)
         stmt = self._apply_filters(stmt, filters)
         stmt = self._apply_options(stmt, options)
-        stmt = stmt.order_by(order_by or self._order_by).offset(skip).limit(limit)
+
+        # 处理多字段排序
+        if order_by is None:
+            order_clauses = [self._order_by]
+        elif isinstance(order_by, (list, tuple)):
+            order_clauses = list(order_by)
+        else:
+            order_clauses = [order_by]
+
+        stmt = stmt.order_by(*order_clauses).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())
 
@@ -146,7 +161,7 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         self,
         db: AsyncSession,
         *,
-        filters: Sequence[Any] | None = None,
+        filters: Sequence[ColumnElement[bool]] | None = None,
     ) -> int:
         """
         统计符合条件的记录总数（分页必备）。
@@ -196,7 +211,7 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         db: AsyncSession,
         *,
         objs_in: list[CreateSchemaType],
-        return_objects: bool = True,
+        return_objs: bool = True,
     ) -> list[ModelType] | None:
         """
         批量创建记录。
@@ -207,23 +222,23 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         Args:
             db: 异步数据库会话
             objs_in: 创建数据的 Pydantic Schema 列表
-            return_objects: 是否返回完整对象列表
+            return_objs: 是否返回完整对象列表
 
         Returns:
             创建后的 ORM 模型对象列表（已包含数据库生成的字段）
         """
 
         if not objs_in:
-            return [] if return_objects else None
+            return [] if return_objs else None
 
         stmt = insert(self.model)
-        if return_objects:
+        if return_objs:
             stmt = stmt.returning(self.model)
 
         data = [obj.model_dump() for obj in objs_in]
         result = await db.execute(stmt, data)
 
-        if return_objects:
+        if return_objs:
             return list(result.scalars().all())
         return None
 
@@ -255,6 +270,10 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         """
         update_data = obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
         for field, value in update_data.items():
+            # 1. 防御性跳过主键（主键不可变）
+            if field == self._pk_name:
+                continue
+            # 2. 确保字段存在于模型中
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
 
@@ -262,7 +281,9 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         await db.refresh(db_obj)
         return db_obj
 
-    async def delete(self, db: AsyncSession, *, obj_id: Any) -> ModelType | None:
+    async def delete(
+        self, db: AsyncSession, *, obj_id: Any, return_obj: bool = True
+    ) -> ModelType | None:
         """
         根据主键 ID 删除记录（硬删除）。
 
@@ -274,10 +295,20 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         Args:
             db: 异步数据库会话
             obj_id: 主键值（支持 int、UUID 等任意类型）
+            return_obj: 是否先查询并返回被删除的对象。
+                        设为 False 将直接使用 Core DELETE 语句，减少一次 SELECT IO。
 
         Returns:
             被删除的 ORM 模型对象，不存在则返回 None
         """
+        if not return_obj:
+            # 高性能模式：直接执行 DELETE，不查询对象
+            stmt = delete(self.model).where(self._pk_column == obj_id)
+            await db.execute(stmt)
+            await db.flush()
+            return None
+
+        # 兼容模式：查询后删除，返回对象
         obj = await self.get(db, obj_id)
         if obj:
             await db.delete(obj)
