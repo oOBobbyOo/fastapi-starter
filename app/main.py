@@ -58,9 +58,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ---- 注册异常处理器 ----
-register_exception_handlers(app)
-
 # ---- 中间件注册 ----
 app.add_middleware(
     CORSMiddleware,
@@ -75,6 +72,9 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 # ---- 静态文件 ----
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# ---- 注册异常处理器 ----
+register_exception_handlers(app)
 
 
 # Health check endpoint
