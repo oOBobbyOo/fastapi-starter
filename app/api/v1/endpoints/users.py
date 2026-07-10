@@ -10,6 +10,7 @@ from fastapi import APIRouter
 
 from app.api.deps import DBSession, Pagination
 from app.api.v1.schemas.users import UserCreate, UserResponse, UserUpdate
+from app.schemas.pagination import PaginatedResponse
 from app.services.user import user_service
 from app.utils.exceptions import NotFoundException
 
@@ -28,15 +29,27 @@ async def get_user(user_id: UUID, db: DBSession) -> UserResponse:
     return UserResponse.model_validate(user)
 
 
-@router.get("/", response_model=list[UserResponse], summary="获取用户列表")
+@router.get("/", response_model=PaginatedResponse[UserResponse], summary="分页获取用户列表")
 async def list_users(
     pagination: Pagination,
     db: DBSession,
-) -> list[UserResponse]:
+) -> PaginatedResponse[UserResponse]:
     """分页查询用户列表"""
 
-    users = await user_service.get_multi(db, skip=pagination.skip, limit=pagination.page_size)
-    return [UserResponse.model_validate(user) for user in users]
+    users, total = await user_service.get_multi_page(
+        db,
+        skip=pagination.skip,
+        limit=pagination.page_size,
+    )
+
+    items = [UserResponse.model_validate(u) for u in users]
+
+    return PaginatedResponse.create(
+        items=items,
+        total=total,
+        page=pagination.page,
+        page_size=pagination.page_size,
+    )
 
 
 @router.post("/", response_model=UserResponse, summary="创建用户")

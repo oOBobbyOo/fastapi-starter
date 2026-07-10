@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast
 
@@ -169,24 +168,31 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         order_by: ColumnElement[Any] | None = None,
     ) -> tuple[list[ModelType], int]:
         """
-        分页查询，并发获取数据和总数。
+        分页查询，返回数据和总数。
 
-        与 get_multi 的区别：
-            - get_multi 只返回数据
-            - get_multi_page 并发查询数据 + 总数，返回 (items, total)
-
-        注意：默认按主键 ID 升序排序，保证分页结果稳定。
+        注意：
+            - 使用顺序执行（AsyncSession 不支持同一连接并发查询）
+            - 默认按主键 ID 升序排序，保证分页结果稳定
 
         Args:
             db: 异步数据库会话
-            skip: 跳过的记录数（偏移量），默认 0
-            limit: 返回的最大记录数，默认 20
-            filters: 可选的过滤条件列表，如 [Item.is_active == True]
+            skip: 跳过的记录数（OFFSET）
+            limit: 每页大小（LIMIT）
+            filters: 可选的过滤条件
             options: 可选的关联预加载选项
-            order_by: 自定义排序字段，覆盖默认排序，支持单字段或字段列表（如 [Item.created_at.desc(), Item.id]）
+            order_by: 自定义排序字段列表
 
         Returns:
-            符合条件的模型对象列表
+            (数据列表, 总记录数) 的元组
+
+        Example:
+            users, total = await user_service.get_multi_page(
+                db,
+                skip=0,
+                limit=20,
+                filters=[User.is_active == True],
+                order_by=[User.created_at.desc(), User.id],
+            )
         """
         stmt = select(self.model)
         stmt = self._apply_filters(stmt, filters)
@@ -202,17 +208,16 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
 
         # 数据查询
         data_stmt = stmt.order_by(*order_clauses).offset(skip).limit(limit)
-        # 总数查询（使用子查询复用过滤条件）
-        count_stmt = select(func.count()).select_from(stmt.subquery())
-
-        # 并发执行两个查询，减少延迟
-        data_result, count_result = await asyncio.gather(
-            db.execute(data_stmt),
-            db.execute(count_stmt),
-        )
-
+        data_result = await db.execute(data_stmt)
         items = list(data_result.scalars().all())
+
+        # 总数查询（使用子查询复用过滤条件）
+        # 显式清除 order_by/offset/limit 防止子查询报错
+        clean_stmt = stmt.order_by(None).offset(None).limit(None)
+        count_stmt = select(func.count()).select_from(clean_stmt.subquery())
+        count_result = await db.execute(count_stmt)
         total = count_result.scalar_one()
+
         return items, total
 
     async def count(
