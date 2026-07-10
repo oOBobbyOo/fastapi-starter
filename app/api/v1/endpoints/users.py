@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from app.api.deps import DBSession
+from app.api.deps import DBSession, Pagination
 from app.api.v1.schemas.users import UserCreate, UserResponse, UserUpdate
 from app.services.user import user_service
 from app.utils.exceptions import NotFoundException
@@ -29,14 +29,13 @@ async def get_user(user_id: UUID, db: DBSession) -> UserResponse:
 
 
 @router.get("/", response_model=list[UserResponse], summary="获取用户列表")
-async def get_users(
+async def list_users(
+    pagination: Pagination,
     db: DBSession,
-    skip: int = 0,
-    limit: int = 10,
 ) -> list[UserResponse]:
     """分页查询用户列表"""
 
-    users = await user_service.get_multi(db, skip=skip, limit=limit)
+    users = await user_service.get_multi(db, skip=pagination.skip, limit=pagination.page_size)
     return [UserResponse.model_validate(user) for user in users]
 
 

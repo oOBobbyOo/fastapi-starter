@@ -4,30 +4,27 @@ Items 端点。
 提供 /items 资源的 CRUD 操作。
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
-from app.api.deps import pagination_params
+from app.api.deps import Pagination
 from app.api.v1.schemas.items import ItemCreate, ItemResponse, ItemUpdate
 
 router = APIRouter()
 
 # 模拟数据存储
 _items_db: dict[int, dict[str, object]] = {
-    1: {"id": 1, "name": "Item One", "price": 9.99},
-    2: {"id": 2, "name": "Item Two", "price": 19.99},
+    0: {"id": 0, "name": "Item One", "price": 9.99},
+    1: {"id": 1, "name": "Item Two", "price": 19.99},
 }
 
 
 @router.get("/", summary="获取物品列表")
 async def list_items(
-    pagination: dict[str, int] = Depends(pagination_params),
+    pagination: Pagination,
 ) -> list[ItemResponse]:
     """分页获取物品列表。"""
-    items = list(_items_db.values())
-    return [
-        ItemResponse(**item)
-        for item in items[pagination["skip"] : pagination["skip"] + pagination["limit"]]
-    ]
+    items = list[dict[str, object]](_items_db.values())
+    return [ItemResponse(**item) for item in items[pagination.skip : pagination.page_size]]
 
 
 @router.get("/{item_id}", summary="获取单个物品")

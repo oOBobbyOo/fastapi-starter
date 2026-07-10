@@ -12,15 +12,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
 from app.db.database import get_db
+from app.schemas.pagination import PaginationParams
 
 
 # ---- 分页 ----
 async def pagination_params(
-    skip: int = Query(0, ge=0, description="跳过记录数"),
-    limit: int = Query(20, ge=1, le=100, description="返回记录数上限"),
-) -> dict[str, int]:
-    """通用分页参数。"""
-    return {"skip": skip, "limit": limit}
+    page: int = Query(1, ge=1, description="页码 (从 1 开始)"),
+    page_size: int = Query(20, ge=1, le=100, description="每页大小 (1-100)"),
+) -> PaginationParams:
+    """
+    分页参数依赖。
+
+    自动从 Query 参数解析并构造 PaginationParams 实例。
+    """
+    return PaginationParams(page=page, page_size=page_size)
 
 
 # ---- 认证 ----
@@ -54,5 +59,6 @@ async def get_current_user(
     return payload
 
 
-# ---- 数据库会话 ----
+# ---- 类型别名：简化路由签名 ----
+Pagination = Annotated[PaginationParams, Depends(pagination_params)]
 DBSession = Annotated[AsyncSession, Depends(get_db)]
