@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast
 
@@ -156,6 +157,63 @@ class CRUDBase[ModelType: Base, CreateSchemaType: BaseModel, UpdateSchemaType: B
         stmt = stmt.order_by(*order_clauses).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_multi_page(
+        self,
+        db: AsyncSession,
+        *,
+        skip: int = 0,
+        limit: int = 20,
+        filters: Sequence[ColumnElement[bool]] | None = None,
+        options: Sequence[LoaderOption] | None = None,
+        order_by: ColumnElement[Any] | None = None,
+    ) -> tuple[list[ModelType], int]:
+        """
+        分页查询，并发获取数据和总数。
+
+        与 get_multi 的区别：
+            - get_multi 只返回数据
+            - get_multi_page 并发查询数据 + 总数，返回 (items, total)
+
+        注意：默认按主键 ID 升序排序，保证分页结果稳定。
+
+        Args:
+            db: 异步数据库会话
+            skip: 跳过的记录数（偏移量），默认 0
+            limit: 返回的最大记录数，默认 20
+            filters: 可选的过滤条件列表，如 [Item.is_active == True]
+            options: 可选的关联预加载选项
+            order_by: 自定义排序字段，覆盖默认排序，支持单字段或字段列表（如 [Item.created_at.desc(), Item.id]）
+
+        Returns:
+            符合条件的模型对象列表
+        """
+        stmt = select(self.model)
+        stmt = self._apply_filters(stmt, filters)
+        stmt = self._apply_options(stmt, options)
+
+        # 处理多字段排序
+        if order_by is None:
+            order_clauses = [self._order_by]
+        elif isinstance(order_by, (list, tuple)):
+            order_clauses = list(order_by)
+        else:
+            order_clauses = [order_by]
+
+        # 数据查询
+        data_stmt = stmt.order_by(*order_clauses).offset(skip).limit(limit)
+        # 总数查询（使用子查询复用过滤条件）
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+
+        # 并发执行两个查询，减少延迟
+        data_result, count_result = await asyncio.gather(
+            db.execute(data_stmt),
+            db.execute(count_stmt),
+        )
+
+        items = list(data_result.scalars().all())
+        total = count_result.scalar_one()
+        return items, total
 
     async def count(
         self,
