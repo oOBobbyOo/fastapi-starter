@@ -2,14 +2,16 @@
 API 依赖注入。
 
 提供路由处理器通过 Depends() 注入的公共依赖，
-如分页参数、当前用户等。
+如分页参数、当前用户、数据库会话等。
 """
 
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import Header, HTTPException, Query, status
+from fastapi import Depends, Header, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_token
+from app.db.database import get_db
 
 
 # ---- 分页 ----
@@ -50,3 +52,7 @@ async def get_current_user(
         )
 
     return payload
+
+
+# ---- 数据库会话 ----
+DBSession = Annotated[AsyncSession, Depends(get_db)]

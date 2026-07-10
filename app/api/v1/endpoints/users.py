@@ -6,11 +6,10 @@ Users 端点。
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter
 
+from app.api.deps import DBSession
 from app.api.v1.schemas.users import UserCreate, UserResponse, UserUpdate
-from app.db.database import get_db
 from app.services.user import user_service
 from app.utils.exceptions import NotFoundException
 
@@ -18,7 +17,7 @@ router = APIRouter()
 
 
 @router.get("/{user_id}", response_model=UserResponse, summary="获取用户")
-async def get_user(user_id: UUID, db: AsyncSession = Depends(get_db)) -> UserResponse:
+async def get_user(user_id: UUID, db: DBSession) -> UserResponse:
     """根据 User ID 获取用户详情"""
 
     user = await user_service.get(db, obj_id=user_id)
@@ -31,9 +30,9 @@ async def get_user(user_id: UUID, db: AsyncSession = Depends(get_db)) -> UserRes
 
 @router.get("/", response_model=list[UserResponse], summary="获取用户列表")
 async def get_users(
+    db: DBSession,
     skip: int = 0,
     limit: int = 10,
-    db: AsyncSession = Depends(get_db),
 ) -> list[UserResponse]:
     """分页查询用户列表"""
 
@@ -42,7 +41,7 @@ async def get_users(
 
 
 @router.post("/", response_model=UserResponse, summary="创建用户")
-async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> UserResponse:
+async def create_user(user_in: UserCreate, db: DBSession) -> UserResponse:
     """创建新用户"""
 
     user = await user_service.create(db, obj_in=user_in)
@@ -55,7 +54,7 @@ async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -
 async def update_user(
     user_id: UUID,
     user_in: UserUpdate,
-    db: AsyncSession = Depends(get_db),
+    db: DBSession,
 ) -> UserResponse:
     """更新用户信息"""
 
@@ -73,7 +72,7 @@ async def update_user(
 @router.delete("/{user_id}", summary="删除用户")
 async def delete_user(
     user_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: DBSession,
 ) -> None:
     """删除用户"""
 
